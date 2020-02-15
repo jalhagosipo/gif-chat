@@ -1,42 +1,43 @@
-const WebSocket = require('ws');
+const SocketIO = require('socket.io');
 
 module.exports = (server) => {
-    // 익스프레스 서버를 웹 소켓 서버와 연결
-  const wss = new WebSocket.Server({ server });
+  // 익스프레스 서버를 socket.io와 연결
+  // 두번째 인자로 옵션 객체를 넣어 서버에 관한 여러 가지 설정을 할 수 있다.
+  // 여기선 클라이언트와 연결할 수 있는 경로를 의미하는 path옵션만 사용했다.
+  const io = SocketIO(server, { path: '/socket.io'});
 
-  // connection 이벤트는 클라이언트가 서버와 웹 소켓 연결을 맺을 때 발생
-  // 익스프레스 서버와 연결한 후, 웹 소켓 객체(ws)에 이벤트 리스너 세 개(message, error, close)연결
-  wss.on('connection', (ws, req) => {
-      // 클라이언트의 ip를 알아낸다
+  // connection이벤트는 클라이언트가 접속했을 때 발생
+  // 콜백으로 소켓 객체를 제공
+  io.on('connection', (socket) => {
+
+    // 응답객체 : socket.request.res
+    const req = socket.request; // 요청객체
     const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-    console.log('새로운 클라이언트 접속', ip);
 
-    // 클라이언트로부터 메시지가 왔을 때 발생
-    ws.on('message', (message) => {
-      console.log(message);
+    // socket.id로 소켓의 주인이 누군지 특정할 수 있다.
+    console.log('새로운 클라이언트 접속', ip, socket.id, req.ip);
+
+    socket.on('disconnect', () => {
+      console.log('클라이언트 접속 해제', ip, socket.id);
+      clearInterval(socket.interval);
     });
 
-    // 웹 소켓 연결 중 문제가 생겼을 때 발생
-    ws.on('error', (error) => {
+    socket.on('error', (error) => {
       console.error(error);
     });
 
-    // 클라이언트와 연결이 끊겼을 때 발생
-    ws.on('close', () => {
-      console.log('클라이언트 접속 해제', ip);
-
-      // 이 코드가 없다면 메모리 누수가 발생
-      clearInterval(ws.interval);
+    // 사용자가 직접 만든 이벤트
+    // 클라이언트에서 reply라는 이벤트명으로 데이터를 보낼 때 서버에서 받는 부분
+    // 이벤트명을 사용하는 것이 ws모듈과는 다르다.
+    socket.on('reply', (data) => {
+      console.log(data);
     });
 
-    // 3초마다 연결된 모든 클라이언트에게 메시지를 보내는 부분
     const interval = setInterval(() => {
-        // 웹소켓 상태 : OPEN, CONNECTING, CLOSING, CLOSED
-      if (ws.readyState === ws.OPEN) {
-          // 하나의 클라이언트에게 메시지를 보낸다.
-        ws.send('서버에서 클라이언트로 메시지를 보냅니다.');
-      }
+      // 첫번째 인자 : 이벤트 이름
+      // 두번째 인자 : 데이터
+      // 클라이언트가 이 메시지를 받기 위해서는 news 이벤트 리스너를 만들어두어야 한다.
+      socket.emit('news', 'Hello Socket.io');
     }, 3000);
-    ws.interval = interval;
   });
 };
