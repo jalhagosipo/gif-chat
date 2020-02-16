@@ -10,6 +10,8 @@ module.exports = () => {
     }
     mongoose.connect(MONGO_URL, {
       dbName: 'gifchat',
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
     }, (error) => {
       if (error) {
         console.log('몽고디비 연결 에러', error);
