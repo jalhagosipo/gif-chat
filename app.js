@@ -4,12 +4,27 @@ const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const flash = require('connect-flash');
+const ColorHash = require('color-hash');
 require('dotenv').config();
 
 const webSocket = require('./socket');
 const indexRouter = require('./routes');
+const connect = require('./schemas');
 
 const app = express();
+// 서버 실행할 때 몽고디비에 바로 접속할 수 있도록 서버와 몽구스 연결
+connect();
+
+// Socket.IO에서 세션에 접근하기위해 express-session을 공유하도록 변수로 분리해서 만든다.
+const sessionMiddleware = session({
+  resave: false,
+  saveUninitialized: false,
+  secret: process.env.COOKIE_SECRET,
+  cookie: {
+    httpOnly: true,
+    source: false,
+  },
+});
 
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'pug');
@@ -29,7 +44,16 @@ app.use(session({
     secure: false,
   },
 }));
+app.use(sessionMiddleware);
 app.use(flash());
+
+app.use((req, res, next) => {
+  if (!req.session.color) {
+    const colorHash = new ColorHash();
+    req.session.color = colorHash.hex(req.sessionID);
+  }
+  next();
+})
 
 app.use('/', indexRouter);
 
@@ -51,4 +75,4 @@ const server = app.listen(app.get('port'), () => {
 });
 
 // 웹 소켓을 익스프레스 서버에 연결
-webSocket(server);
+webSocket(server, app, sessionMiddleware);

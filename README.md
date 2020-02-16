@@ -29,3 +29,25 @@
     - 웹소켓을 지원하는 브라우저는 웹 소켓방식으로 사용 가능한 것
     - 처음부터 웹소켓만 사용하고 싶다면 `transports: ['websocket']` 옵션을 주면된다.
 
+## v0.3
+- 실시간 GIF 채팅방 만들기
+- `npm i mongoose multer axios color-hash`
+    - mongoose : mongodb odm(object data mapping)
+    - multer : 이미지 업로드
+    - axios : HTTP요청
+    - color-hash : 랜덤 색상 구현
+    - 채팅방(room.js) 스키마 / 채팅 내역(chat.js) 스키마 추가, 몽고디비와 연결하는 코드(index.js) 추가, 사용자는 익명이니 저장할 필요 x
+- views 추가
+    - 메인 화면(main.pug) : 
+        - `io.connectio.connect('http://localhost:8005/room',..` -> 주소뒤에 네임스페이스(`/room`)이 붙는다.
+    - 채팅방 생성 화면(room.pug)
+    - 채팅방 화면(chat.pug) : 
+        - 메시지 종류(내 메시지(mine), 시스템 메시지(system), 남의 메시지(other))에 따라 디자인이 달라진다.
+        - 네임스페이스가 `/chat`임 -> `/room` 네임스페이스로 보낸 데이터는 받을 수 없고, `/chat`네임스페이스로 보낸 데이터만 받을 수 있다.
+- 자신과 남을 구분하기 위해 고유한 색상을 부여
+    - 매번 페이지를 이동할 때마다 소켓연결이 해제되고 다시 연결되면서 소켓 아이디가 바뀐다.
+    - 따라서 `color-hash`패키지를 사용해 세션아이디를 색상문자열로 바꿔 표현한다.
+        - 사용자가 많아질 경우 색상이 중복되는 문제가 있을 수 있지만 예제기 때문에 충분히 사용할 수 있다.
+- `mongod`를 통해 몽고디비를 실행하고 서버를 실행해서 확인하자
+        
+
