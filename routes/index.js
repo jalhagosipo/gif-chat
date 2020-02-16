@@ -66,10 +66,12 @@ router.get('/room/:id', async (req, res, next) => {
       req.flash('roomError', '허용 인원이 초과하였습니다.');
       return res.redirect('/');
     }
+    // 방 접속시 기존 채팅 내역을 불러옴
+    const chats = await Chat.find({ room: room._id }).sort('createdAt');
     return res.render('chat', {
       room,
       title: room.title,
-      chats: [],
+      chats,
       user: req.session.color,
     });
   } catch (error) {
@@ -90,6 +92,26 @@ router.delete('/room/:id', async (req, res, next) => {
     setTimeout(() => {
       req.app.get('io').of('/room').emit('removeRoom', req.params.id);
     }, 2000);
+  } catch (error) {
+    console.error(error);
+    next(error);
+  }
+});
+
+router.post('/room/:id/chat', async (req, res, next) => {
+  try {
+    const chat = new Chat({
+      room: req.params.id,
+      user: req.session.color,
+      chat: req.body.chat,
+    });
+
+    // 채팅을 db에 저장
+    await chat.save();
+
+    // 같은 방에 들어있는 소켓들에게 메시지 데이터를 전송
+    req.app.get('io').of('/chat').to(req.params.id).emit('chat', chat);
+    res.send('ok');
   } catch (error) {
     console.error(error);
     next(error);
